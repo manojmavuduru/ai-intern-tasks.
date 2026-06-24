@@ -1,77 +1,110 @@
-# AI/ML Internship Project Portfolio
+# Task 5 — Face Detection & Recognition
 
-Five self-contained AI/ML projects, each demonstrating a different
-core technique — from rule-based logic and classic search algorithms
-through to deep learning with CNNs, RNNs, and metric learning. Every
-task includes working code, a Streamlit demo UI, unit tests, and its
-own README with setup instructions and extension ideas.
+An AI application that **detects** faces in images (using either
+classic Haar cascades or a deep-learning detector) and optionally
+**recognizes** who they are using a from-scratch **Siamese network**
+trained with triplet loss — the same family of technique behind
+FaceNet and ArcFace, scaled down to something trainable without a
+GPU cluster.
 
-| # | Task | Core Techniques | Demo |
-|---|------|------------------|------|
-| 1 | [Rule-Based Chatbot](task1-rule-based-chatbot/) | Regex pattern matching, intent rules | `streamlit run app.py` |
-| 2 | [Tic-Tac-Toe AI](task2-tictactoe-ai/) | Minimax, Alpha-Beta Pruning, game theory | `streamlit run app.py` |
-| 3 | [Image Captioning](task3-image-captioning/) | CNN (ResNet/VGG) + LSTM, transfer learning | `streamlit run app.py` |
-| 4 | [Recommendation System](task4-recommendation-system/) | TF-IDF, collaborative filtering, SVD | `streamlit run app.py` |
-| 5 | [Face Detection & Recognition](task5-face-detection-recognition/) | Haar cascades, Siamese networks, triplet loss | `streamlit run app.py` |
+## Architecture
 
-## Repository structure
+### Detection (two interchangeable backends)
+- **Haar Cascades** (`HaarFaceDetector`): OpenCV's classic, CPU-fast detector. Great baseline, used by default.
+- **DNN detector** (`DnnFaceDetector`): a pre-trained ResNet-10 SSD model (OpenCV's DNN module) — more robust to off-angle faces and poor lighting. Requires downloading model weights once (`download_models.py`).
+
+### Recognition (Siamese network + triplet loss)
+- `EmbeddingNet`: a small CNN that maps a face crop to a 128-d embedding vector, L2-normalized so distances are directly comparable.
+- `TripletLoss`: trains the network so that (anchor, positive) pairs — two photos of the *same* person — end up close together, while (anchor, negative) pairs — different people — end up far apart.
+- `FaceVerifier` / `FaceRecognitionPipeline`: wraps the trained model into a usable "register known faces, then identify new photos" workflow.
+
+## Project structure
 
 ```
-.
-├── task1-rule-based-chatbot/
-├── task2-tictactoe-ai/
-├── task3-image-captioning/
-├── task4-recommendation-system/
-├── task5-face-detection-recognition/
-├── .gitignore
-├── LICENSE
-└── README.md   <- you are here
+task5-face-detection-recognition/
+├── face_detector.py          # Haar + DNN face detectors (CLI runnable)
+├── download_models.py        # Fetches DNN detector weights
+├── siamese_model.py          # EmbeddingNet, TripletLoss, FaceVerifier
+├── train_recognition.py      # Trains the Siamese network on a labeled face dataset
+├── recognition_pipeline.py   # End-to-end: detect -> crop -> embed -> match against database (CLI runnable)
+├── app.py                    # Streamlit web UI (detect, recognize, register new faces)
+├── test_face_recognition.py  # Unit tests
+└── requirements.txt
 ```
 
-Each task folder is **fully independent** — its own `requirements.txt`,
-its own `README.md`, its own tests. You can clone the whole repo and
-run any single task without needing the others installed.
-
-## Quick start (any task)
+## Running detection only (works immediately, no training needed)
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo-name>.git
-cd <your-repo-name>/task1-rule-based-chatbot   # or any task folder
 pip install -r requirements.txt
+python face_detector.py path/to/photo.jpg --backend haar --out detected.jpg
+```
+
+For the more accurate DNN backend:
+```bash
+python download_models.py   # one-time download of model weights
+python face_detector.py path/to/photo.jpg --backend dnn --out detected.jpg
+```
+
+## Adding recognition (requires training on a labeled dataset)
+
+Recognition needs photos of the **same people you want to recognize**,
+so — like Task 3 — there's no way to skip a training step entirely.
+The standard learning dataset is
+[LFW (Labeled Faces in the Wild)](http://vis-www.cs.umass.edu/lfw/),
+already organized as one folder per identity (exactly the layout
+`train_recognition.py` expects):
+
+```
+dataset/
+    Person_A/
+        img1.jpg
+        img2.jpg
+    Person_B/
+        img1.jpg
+        ...
+```
+
+```bash
+python train_recognition.py --data_dir dataset --epochs 20
+```
+
+Then register known faces and recognize new photos:
+```bash
+python recognition_pipeline.py register "Alice" alice_photo.jpg --model face_recognition_model.pt
+python recognition_pipeline.py recognize new_photo.jpg --model face_recognition_model.pt
+```
+
+## Running the demo without training first
+
+```bash
 streamlit run app.py
 ```
+Detection works immediately. The "Register a Face" tab lets you add
+people to the recognition database — but without a trained model
+(`face_recognition_model.pt`), the embeddings come from randomly
+initialized weights, so matches won't be meaningful yet. The app
+clearly flags this in the sidebar.
 
-## Why these five, together
-
-This set intentionally spans a gradient of AI/ML complexity:
-
-1. **Rule-based logic** (no ML at all) — the foundation of conversational systems.
-2. **Classical search/game theory** — Minimax shows how "intelligence" can emerge from exhaustive search, no training data required.
-3. **Deep learning, multi-modal** — combining computer vision (CNN) and NLP (RNN) in an encoder-decoder pipeline.
-4. **Classical ML for personalization** — TF-IDF similarity and matrix factorization, the backbone of real-world recommender systems.
-5. **Computer vision + metric learning** — object detection paired with a from-scratch Siamese network, the same family of technique behind production face-recognition systems.
-
-Each README explains *why* specific design choices were made (not
-just *how* to run the code), what each project's limitations are,
-and concrete ways to extend it further — useful both for
-demonstrating understanding and as a roadmap for follow-up work.
-
-## Testing
-
-Every task includes a unit test suite. From inside any task folder:
+## Running tests
 ```bash
-python -m unittest discover -p "test_*.py" -v
+python -m unittest test_face_recognition.py -v
 ```
-All test suites pass as of the latest commit.
+Tests cover detector loading/behavior, embedding shape and
+normalization, triplet loss correctness, and the face-verification
+distance logic — all without needing a GPU or trained weights.
 
-## Deploying the demos
+## Possible extensions
+- Swap the from-scratch `EmbeddingNet` for a pretrained **FaceNet (InceptionResNetV1)** or **ArcFace** model for production-quality recognition without training your own.
+- Add **real-time webcam** detection/recognition using `cv2.VideoCapture`.
+- Add **liveness detection** (blink detection, etc.) to guard against photo spoofing in security applications.
+- Store the face database in a real vector database (e.g. FAISS, Pinecone) for fast lookup at scale.
 
-Each Streamlit app can be deployed for free on
-[Streamlit Community Cloud](https://streamlit.io/cloud):
-1. Push this repo to GitHub (see below).
-2. On Streamlit Cloud, click "New app", point it at your repo, and set the **main file path** to e.g. `task1-rule-based-chatbot/app.py`.
-3. Repeat per task (each needs its own Streamlit app deployment, since they're independent projects with separate `requirements.txt` files).
+## Concepts demonstrated
+Object detection (Haar cascades, SSD), transfer learning, metric learning, triplet loss, Siamese networks, embedding spaces, nearest-neighbor matching.
 
-## License
-
-MIT — see [LICENSE](LICENSE).
+## ⚠️ Ethical note
+Face recognition technology raises real privacy and consent
+concerns. This project is for educational purposes — if extending it
+toward a real deployment, make sure you have explicit, informed
+consent from anyone whose face is registered, and check applicable
+local laws (e.g. BIPA, GDPR) around biometric data.

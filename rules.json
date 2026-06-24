@@ -1,0 +1,41 @@
+[
+  {
+    "patterns": ["\\bhello\\b", "\\bhi\\b", "\\bhey\\b"],
+    "responses": ["Hello! How can I help you today?", "Hi there! What can I do for you?"]
+  },
+  {
+    "patterns": ["my name is (\\w+)", "i am (\\w+)", "i'm (\\w+)"],
+    "responses": ["Nice to meet you, {0}!"]
+  },
+  {
+    "patterns": ["\\bhow are you\\b"],
+    "responses": ["I'm just a bunch of if-else statements, but I'm doing great! How about you?"]
+  },
+  {
+    "patterns": ["\\btime\\b"],
+    "responses": ["The current time is {time}."]
+  },
+  {
+    "patterns": ["\\bdate\\b|\\btoday\\b"],
+    "responses": ["Today's date is {date}."]
+  },
+  {
+    "patterns": ["\\bjoke\\b"],
+    "responses": [
+      "Why do programmers prefer dark mode? Because light attracts bugs!",
+      "I would tell you a UDP joke, but you might not get it."
+    ]
+  },
+  {
+    "patterns": ["\\bthank you\\b|\\bthanks\\b"],
+    "responses": ["You're welcome!", "Anytime!"]
+  },
+  {
+    "patterns": ["\\bbye\\b|\\bgoodbye\\b|\\bexit\\b|\\bquit\\b"],
+    "responses": ["Goodbye! Have a great day.", "See you later!"]
+  },
+  {
+    "patterns": ["\\bhelp\\b"],
+    "responses": ["You can ask me about the time, date, tell you a joke, or just chat. Try saying 'hello'!"]
+  }
+]

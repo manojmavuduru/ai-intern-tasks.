@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Trained models & large artifacts (regenerate locally; keep repo lightweight)
+*.pt
+*.pth
+*.h5
+*.pkl
+*.caffemodel
+task5-face-detection-recognition/models/
+task3-image-captioning/features.pkl
+task3-image-captioning/vocab.json
+task3-image-captioning/caption_model.pt
+task4-recommendation-system/data/
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Streamlit
+.streamlit/secrets.toml
